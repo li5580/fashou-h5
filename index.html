@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>发售文案生成器</title>
+<style>
+  :root { --brand:#2563eb; --bg:#f5f6f8; --card:#fff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); font-size:15px; line-height:1.6; padding-bottom:40px; }
+  .wrap { max-width:640px; margin:0 auto; padding:16px; }
+  h1 { font-size:20px; text-align:center; margin:8px 0 4px; }
+  .sub { text-align:center; color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .card { background:var(--card); border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .card h2 { font-size:16px; margin-bottom:12px; }
+  label { display:block; font-size:14px; color:var(--muted); margin:10px 0 4px; }
+  input, textarea, select { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:15px; background:#fafafa; }
+  textarea { resize:vertical; min-height:60px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { padding:6px 14px; border:1px solid var(--border); border-radius:20px; font-size:14px; background:#fff; cursor:pointer; user-select:none; }
+  .chip.on { background:var(--brand); color:#fff; border-color:var(--brand); }
+  .btn { display:block; width:100%; padding:14px; background:var(--brand); color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; }
+  .btn:disabled { background:#9ca3af; }
+  .btn.ghost { background:#fff; color:var(--brand); border:1px solid var(--brand); }
+  .select-group { margin:10px 0; }
+  .result { white-space:pre-wrap; word-break:break-word; background:#fafafa; border:1px solid var(--border); border-radius:8px; padding:14px; font-size:14px; }
+  .copy-btn { margin-top:8px; }
+  .stage-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  .stage-tab { padding:6px 12px; border:1px solid var(--border); border-radius:8px; font-size:13px; cursor:pointer; }
+  .stage-tab.on { background:var(--brand); color:#fff; border-color:var(--brand); }
+  .hidden { display:none; }
+  .loading { text-align:center; color:var(--muted); padding:20px; }
+  .error { color:#dc2626; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📣 发售文案生成器</h1>
+  <div class="sub">填产品信息 → 选阶段/角度/渠道 → 一键生成整套发售文案</div>
+
+  <div class="card">
+    <h2>① 产品信息</h2>
+    <label>产品名</label><input id="p_name" placeholder="如：AI 出单工作流">
+    <label>一句话定位</label><textarea id="p_position" placeholder="帮谁解决什么问题、拿到什么结果"></textarea>
+    <label>核心卖点（1-3 个，说人话）</label><textarea id="p_selling"></textarea>
+    <label>目标用户</label><input id="p_audience">
+    <label>价格</label><input id="p_price" placeholder="如：99 元">
+    <label>核心痛点</label><textarea id="p_pain"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>② 发售配置</h2>
+    <label>语气基线</label>
+    <select id="tone">
+      <option value="真诚 + 朋友式 + 口语" selected>真诚 + 朋友式 + 口语（破冰/私聊）</option>
+      <option value="权威 + 专家 + 专业">权威 + 专家 + 专业（销售信）</option>
+      <option value="紧迫 + 笃定 + 销售">紧迫 + 笃定 + 销售（脉冲发售）</option>
+      <option value="警醒 + 同行者 + 毒鸡汤">警醒 + 同行者 + 毒鸡汤</option>
+      <option value="温柔 + 服务者 + 治愈">温柔 + 服务者 + 治愈（售后维系）</option>
+      <option value="幽默 + 吐槽搭子 + 网感">幽默 + 吐槽搭子 + 网感（公域引流）</option>
+    </select>
+    <label>渠道（可多选）</label>
+    <div class="chips" id="channels"></div>
+  </div>
+
+  <div class="card">
+    <h2>③ 选择要生成的内容</h2>
+    <div class="stage-tabs" id="stageTabs"></div>
+    <div class="select-group">
+      <label>第几天</label><select id="daySel"></select>
+    </div>
+    <div class="select-group">
+      <label>角度</label><select id="angleSel"></select>
+    </div>
+    <button class="btn" id="genBtn" onclick="generate()">生成这篇文案</button>
+  </div>
+
+  <div class="card hidden" id="resultCard">
+    <h2>④ 生成结果</h2>
+    <div class="result" id="result"></div>
+    <button class="btn ghost copy-btn" onclick="copyResult()">复制文案</button>
+  </div>
+
+  <div id="loading" class="loading hidden">生成中，推理模型约需 30-60 秒…</div>
+</div>
+
+<script>
+// ===== 后端地址：部署后改成你的阿里云 FC 地址 =====
+var API_BASE = "https://fashou-generate-lsuaxrymcx.cn-hangzhou.fcapp.run/";
+
+var SKELETON = null;          // 后端骨架数据
+var currentStage = null;      // 当前选中的阶段名
+
+// 页面加载：拉骨架 + 填渠道
+document.addEventListener("DOMContentLoaded", function () {
+  var ch = document.getElementById("channels");
+  ["朋友圈","小红书","抖音","公众号","视频号","社群","私聊","今日头条","X（推特）","Threads","YouTube","Instagram"].forEach(function (c, i) {
+    var s = document.createElement("span");
+    s.className = "chip" + (i < 3 ? " on" : "");  // 默认前 3 个
+    s.textContent = c;
+    s.onclick = function () { s.classList.toggle("on"); };
+    ch.appendChild(s);
+  });
+  loadSkeleton();
+});
+
+function apiBase() {
+  if (API_BASE.indexOf("你的阿里云") >= 0) {
+    showError("请先在代码里把 API_BASE 改成你的阿里云函数地址");
+    throw new Error("API_BASE 未配置");
+  }
+  return API_BASE;
+}
+
+function loadSkeleton() {
+  fetch(apiBase(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "skeleton" })
+  })
+  .then(function (r) { return r.json(); })
+  .then(function (data) {
+    if (data.error) { showError(data.error); return; }
+    SKELETON = data;
+    renderStages();
+  })
+  .catch(function (e) { showError("骨架加载失败：" + e.message); });
+}
+
+function renderStages() {
+  var tabs = document.getElementById("stageTabs");
+  tabs.innerHTML = "";
+  SKELETON.六阶段.forEach(function (s) {
+    var b = document.createElement("span");
+    b.className = "stage-tab";
+    b.textContent = s.emoji + " " + s.名称;
+    b.onclick = function () { selectStage(s.名称); };
+    tabs.appendChild(b);
+  });
+  selectStage(SKELETON.六阶段[0].名称);
+}
+
+function selectStage(name) {
+  currentStage = name;
+  var stage = SKELETON.六阶段.find(function (s) { return s.名称 === name; });
+  document.querySelectorAll(".stage-tab").forEach(function (t, i) {
+    t.classList.toggle("on", SKELETON.六阶段[i].名称 === name);
+  });
+  var day = document.getElementById("daySel");
+  day.innerHTML = "";
+  stage.每天.forEach(function (d) {
+    var o = document.createElement("option");
+    o.value = d.第几天;
+    o.textContent = "第 " + d.第几天 + " 天 · " + d.主题;
+    day.appendChild(o);
+  });
+  renderAngles();
+  day.onchange = renderAngles;
+}
+
+function renderAngles() {
+  var stage = SKELETON.六阶段.find(function (s) { return s.名称 === currentStage; });
+  var dayIdx = parseInt(document.getElementById("daySel").value) - 1;
+  var angles = stage.每天[dayIdx].角度;
+  var sel = document.getElementById("angleSel");
+  sel.innerHTML = "";
+  angles.forEach(function (a) {
+    var o = document.createElement("option");
+    o.value = a;
+    o.textContent = a;
+    sel.appendChild(o);
+  });
+}
+
+function getChannels() {
+  var out = [];
+  document.querySelectorAll("#channels .chip.on").forEach(function (c) { out.push(c.textContent); });
+  return out;
+}
+
+function getConfig() {
+  return {
+    "产品信息": {
+      "产品名": val("p_name"),
+      "一句话定位": val("p_position"),
+      "核心卖点": val("p_selling"),
+      "目标用户": val("p_audience"),
+      "价格": val("p_price"),
+      "核心痛点": val("p_pain")
+    },
+    "发售": { "语气基线": val("tone") }
+  };
+}
+
+function val(id) { return document.getElementById(id).value.trim(); }
+
+function generate() {
+  var channels = getChannels();
+  if (channels.length === 0) { showError("请至少选一个渠道"); return; }
+  var body = {
+    action: "generate",
+    配置: getConfig(),
+    阶段名: currentStage,
+    第几天: parseInt(document.getElementById("daySel").value),
+    角度名: document.getElementById("angleSel").value,
+    渠道名: channels[0]  // MVP 先取第一个渠道
+  };
+  var btn = document.getElementById("genBtn");
+  btn.disabled = true;
+  document.getElementById("loading").classList.remove("hidden");
+  document.getElementById("resultCard").classList.add("hidden");
+
+  fetch(apiBase(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  })
+  .then(function (r) { return r.json(); })
+  .then(function (data) {
+    document.getElementById("loading").classList.add("hidden");
+    btn.disabled = false;
+    if (data.error) { showError(data.error); return; }
+    document.getElementById("result").textContent = data.文案;
+    document.getElementById("resultCard").classList.remove("hidden");
+    document.getElementById("resultCard").scrollIntoView({ behavior: "smooth" });
+  })
+  .catch(function (e) {
+    document.getElementById("loading").classList.add("hidden");
+    btn.disabled = false;
+    showError("生成失败：" + e.message);
+  });
+}
+
+function copyResult() {
+  var text = document.getElementById("result").textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { alert("已复制"); });
+  } else {
+    var ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand("copy"); document.body.removeChild(ta);
+    alert("已复制");
+  }
+}
+
+function showError(msg) {
+  document.getElementById("loading").classList.add("hidden");
+  document.getElementById("resultCard").classList.remove("hidden");
+  document.getElementById("result").textContent = msg;
+  document.getElementById("result").className = "result error";
+}
+</script>
+</body>
+</html>
