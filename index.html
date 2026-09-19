@@ -125,6 +125,12 @@
     border: 1.5px solid var(--brand);
     box-shadow: none; margin-top: 12px;
   }
+  .voice-btn {
+    background: linear-gradient(135deg, #f97316, #ec4899);
+    box-shadow: 0 6px 18px rgba(249, 115, 22, .3);
+    margin: 12px 0 2px;
+    font-size: 14.5px;
+  }
   .result {
     white-space: pre-wrap; word-break: break-word;
     background: #faf9ff; border: 1.5px solid var(--border);
@@ -152,6 +158,7 @@
     <div class="card">
       <h2><span class="no">1</span>产品信息</h2>
       <div class="tip">填得越具体，文案越贴产品</div>
+      <button class="btn voice-btn" onclick="startVoice()">🎤 语音描述产品（说话自动填表）</button>
       <label>产品名</label>
       <input id="p_name" placeholder="如：AI 出单工作流">
       <label>一句话定位</label>
@@ -364,6 +371,55 @@ function showError(msg) {
   document.getElementById("resultCard").classList.remove("hidden");
   document.getElementById("result").textContent = msg;
   document.getElementById("result").className = "result error";
+}
+
+function setVal(id, v) { document.getElementById(id).value = v; }
+
+function startVoice() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    alert("当前浏览器不支持语音输入，请手动填写（微信内若不支持请用文字）");
+    return;
+  }
+  var rec = new SR();
+  rec.lang = "zh-CN";
+  rec.interimResults = false;
+  rec.maxAlternatives = 1;
+  rec.onresult = function (e) {
+    var text = e.results[0][0].transcript;
+    var load = document.getElementById("loading");
+    load.innerHTML = "已识别：" + text + "<br><br>正在拆解成产品信息…";
+    load.classList.remove("hidden");
+    parseProduct(text);
+  };
+  rec.onerror = function (e) {
+    alert("语音识别失败（" + e.error + "），请手动填写");
+  };
+  rec.start();
+}
+
+function parseProduct(text) {
+  fetch(apiBase(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "parse", 文字: text })
+  })
+  .then(function (r) { return r.json(); })
+  .then(function (data) {
+    document.getElementById("loading").classList.add("hidden");
+    if (data.error) { showError(data.error); return; }
+    setVal("p_name", data.产品名 || "");
+    setVal("p_position", data.一句话定位 || "");
+    setVal("p_selling", data.核心卖点 || "");
+    setVal("p_audience", data.目标用户 || "");
+    setVal("p_price", data.价格 || "");
+    setVal("p_pain", data.核心痛点 || "");
+    alert("✅ 已自动填好产品信息，请核对一下再生成文案");
+  })
+  .catch(function (e) {
+    document.getElementById("loading").classList.add("hidden");
+    showError("拆解失败：" + e.message);
+  });
 }
 </script>
 </body>
