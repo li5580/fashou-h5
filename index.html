@@ -5,98 +5,213 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>发售文案生成器</title>
 <style>
-  :root { --brand:#2563eb; --bg:#f5f6f8; --card:#fff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; }
-  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
-  body { font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); font-size:15px; line-height:1.6; padding-bottom:40px; }
-  .wrap { max-width:640px; margin:0 auto; padding:16px; }
-  h1 { font-size:20px; text-align:center; margin:8px 0 4px; }
-  .sub { text-align:center; color:var(--muted); font-size:13px; margin-bottom:16px; }
-  .card { background:var(--card); border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,.05); }
-  .card h2 { font-size:16px; margin-bottom:12px; }
-  label { display:block; font-size:14px; color:var(--muted); margin:10px 0 4px; }
-  input, textarea, select { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:15px; background:#fafafa; }
-  textarea { resize:vertical; min-height:60px; }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; }
-  .chip { padding:6px 14px; border:1px solid var(--border); border-radius:20px; font-size:14px; background:#fff; cursor:pointer; user-select:none; }
-  .chip.on { background:var(--brand); color:#fff; border-color:var(--brand); }
-  .btn { display:block; width:100%; padding:14px; background:var(--brand); color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; }
-  .btn:disabled { background:#9ca3af; }
-  .btn.ghost { background:#fff; color:var(--brand); border:1px solid var(--brand); }
-  .select-group { margin:10px 0; }
-  .result { white-space:pre-wrap; word-break:break-word; background:#fafafa; border:1px solid var(--border); border-radius:8px; padding:14px; font-size:14px; }
-  .copy-btn { margin-top:8px; }
-  .stage-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
-  .stage-tab { padding:6px 12px; border:1px solid var(--border); border-radius:8px; font-size:13px; cursor:pointer; }
-  .stage-tab.on { background:var(--brand); color:#fff; border-color:var(--brand); }
-  .hidden { display:none; }
-  .loading { text-align:center; color:var(--muted); padding:20px; }
-  .error { color:#dc2626; }
+  :root {
+    --brand: #6d5ef2;
+    --brand2: #9b5cf6;
+    --bg: #f4f5fb;
+    --card: #ffffff;
+    --text: #1e1b2e;
+    --muted: #8a87a0;
+    --border: #e8e6f2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.65;
+    padding-bottom: 48px;
+  }
+  .header {
+    background: linear-gradient(135deg, #6d5ef2 0%, #9b5cf6 60%, #c084fc 100%);
+    color: #fff;
+    padding: 34px 20px 46px;
+    border-radius: 0 0 28px 28px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: "";
+    position: absolute;
+    right: -40px; top: -40px;
+    width: 160px; height: 160px;
+    background: rgba(255,255,255,.12);
+    border-radius: 50%;
+  }
+  .header .logo { font-size: 40px; display: block; margin-bottom: 6px; }
+  .header h1 { font-size: 23px; font-weight: 700; letter-spacing: 1px; }
+  .header .sub { font-size: 13px; opacity: .9; margin-top: 8px; }
+  .wrap { max-width: 640px; margin: -24px auto 0; padding: 0 16px; }
+  .card {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 20px 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 6px 24px rgba(80, 60, 180, .08);
+  }
+  .card h2 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card h2 .no {
+    width: 22px; height: 22px; flex: none;
+    background: linear-gradient(135deg, #6d5ef2, #9b5cf6);
+    color: #fff; border-radius: 7px;
+    font-size: 13px; display: inline-flex;
+    align-items: center; justify-content: center;
+  }
+  .card .tip { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  label { display: block; font-size: 13px; color: #4a4760; font-weight: 600; margin: 14px 0 6px; }
+  label:first-of-type { margin-top: 6px; }
+  input, textarea, select {
+    width: 100%; padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px; font-size: 15px;
+    background: #faf9ff; color: var(--text);
+    transition: border .2s, box-shadow .2s;
+    font-family: inherit;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(109, 94, 242, .12);
+    background: #fff;
+  }
+  textarea { resize: vertical; min-height: 64px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 9px; }
+  .chip {
+    padding: 7px 15px; border: 1.5px solid var(--border);
+    border-radius: 20px; font-size: 13.5px;
+    background: #fff; color: #4a4760;
+    cursor: pointer; user-select: none;
+    transition: all .15s;
+  }
+  .chip.on {
+    background: linear-gradient(135deg, #6d5ef2, #9b5cf6);
+    color: #fff; border-color: transparent;
+    box-shadow: 0 3px 10px rgba(109, 94, 242, .3);
+  }
+  .stage-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  .stage-tab {
+    padding: 8px 13px; border: 1.5px solid var(--border);
+    border-radius: 10px; font-size: 13px;
+    cursor: pointer; color: #4a4760;
+    background: #fff; transition: all .15s;
+  }
+  .stage-tab.on {
+    background: linear-gradient(135deg, #6d5ef2, #9b5cf6);
+    color: #fff; border-color: transparent;
+    box-shadow: 0 3px 10px rgba(109, 94, 242, .3);
+  }
+  .btn {
+    display: block; width: 100%; padding: 15px;
+    background: linear-gradient(135deg, #6d5ef2, #9b5cf6);
+    color: #fff; border: none; border-radius: 13px;
+    font-size: 16px; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; margin-top: 18px;
+    box-shadow: 0 8px 20px rgba(109, 94, 242, .35);
+    transition: transform .1s, box-shadow .2s;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { background: #c9c4e8; box-shadow: none; }
+  .btn.ghost {
+    background: #fff; color: var(--brand);
+    border: 1.5px solid var(--brand);
+    box-shadow: none; margin-top: 12px;
+  }
+  .result {
+    white-space: pre-wrap; word-break: break-word;
+    background: #faf9ff; border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 16px; font-size: 14.5px;
+    line-height: 1.8; color: #2b2840;
+  }
+  .result.error { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+  .hidden { display: none; }
+  .loading {
+    text-align: center; color: var(--muted);
+    padding: 26px 0; font-size: 14px;
+  }
+  .loading .dot { display: inline-block; animation: blink 1.2s infinite; }
+  @keyframes blink { 0%,100%{opacity:.2} 50%{opacity:1} }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>📣 发售文案生成器</h1>
-  <div class="sub">填产品信息 → 选阶段/角度/渠道 → 一键生成整套发售文案</div>
-
-  <div class="card">
-    <h2>① 产品信息</h2>
-    <label>产品名</label><input id="p_name" placeholder="如：AI 出单工作流">
-    <label>一句话定位</label><textarea id="p_position" placeholder="帮谁解决什么问题、拿到什么结果"></textarea>
-    <label>核心卖点（1-3 个，说人话）</label><textarea id="p_selling"></textarea>
-    <label>目标用户</label><input id="p_audience">
-    <label>价格</label><input id="p_price" placeholder="如：99 元">
-    <label>核心痛点</label><textarea id="p_pain"></textarea>
+  <div class="header">
+    <span class="logo">📣</span>
+    <h1>发售文案生成器</h1>
+    <div class="sub">填产品信息，一键生成整套发售文案</div>
   </div>
 
-  <div class="card">
-    <h2>② 发售配置</h2>
-    <label>语气基线</label>
-    <select id="tone">
-      <option value="真诚 + 朋友式 + 口语" selected>真诚 + 朋友式 + 口语（破冰/私聊）</option>
-      <option value="权威 + 专家 + 专业">权威 + 专家 + 专业（销售信）</option>
-      <option value="紧迫 + 笃定 + 销售">紧迫 + 笃定 + 销售（脉冲发售）</option>
-      <option value="警醒 + 同行者 + 毒鸡汤">警醒 + 同行者 + 毒鸡汤</option>
-      <option value="温柔 + 服务者 + 治愈">温柔 + 服务者 + 治愈（售后维系）</option>
-      <option value="幽默 + 吐槽搭子 + 网感">幽默 + 吐槽搭子 + 网感（公域引流）</option>
-    </select>
-    <label>渠道（可多选）</label>
-    <div class="chips" id="channels"></div>
-  </div>
-
-  <div class="card">
-    <h2>③ 选择要生成的内容</h2>
-    <div class="stage-tabs" id="stageTabs"></div>
-    <div class="select-group">
-      <label>第几天</label><select id="daySel"></select>
+  <div class="wrap">
+    <div class="card">
+      <h2><span class="no">1</span>产品信息</h2>
+      <div class="tip">填得越具体，文案越贴产品</div>
+      <label>产品名</label>
+      <input id="p_name" placeholder="如：AI 出单工作流">
+      <label>一句话定位</label>
+      <textarea id="p_position" placeholder="帮谁解决什么问题、拿到什么结果"></textarea>
+      <label>核心卖点（1-3 个，说人话）</label>
+      <textarea id="p_selling" placeholder="如：不卖工具不卖课，卖结果"></textarea>
+      <label>目标用户</label>
+      <input id="p_audience" placeholder="如：技术圈初学者、有 FOMO 焦虑的人">
+      <label>价格</label>
+      <input id="p_price" placeholder="如：99 元">
+      <label>核心痛点</label>
+      <textarea id="p_pain" placeholder="如：输入过度、输出不足，倒贴 API 费却不出单"></textarea>
     </div>
-    <div class="select-group">
-      <label>角度</label><select id="angleSel"></select>
+
+    <div class="card">
+      <h2><span class="no">2</span>发售配置</h2>
+      <label>语气基线</label>
+      <select id="tone">
+        <option value="真诚 + 朋友式 + 口语" selected>真诚 + 朋友式 + 口语（破冰/私聊）</option>
+        <option value="权威 + 专家 + 专业">权威 + 专家 + 专业（销售信）</option>
+        <option value="紧迫 + 笃定 + 销售">紧迫 + 笃定 + 销售（脉冲发售）</option>
+        <option value="警醒 + 同行者 + 毒鸡汤">警醒 + 同行者 + 毒鸡汤</option>
+        <option value="温柔 + 服务者 + 治愈">温柔 + 服务者 + 治愈（售后维系）</option>
+        <option value="幽默 + 吐槽搭子 + 网感">幽默 + 吐槽搭子 + 网感（公域引流）</option>
+      </select>
+      <label>渠道（可多选）</label>
+      <div class="chips" id="channels"></div>
     </div>
-    <button class="btn" id="genBtn" onclick="generate()">生成这篇文案</button>
-  </div>
 
-  <div class="card hidden" id="resultCard">
-    <h2>④ 生成结果</h2>
-    <div class="result" id="result"></div>
-    <button class="btn ghost copy-btn" onclick="copyResult()">复制文案</button>
-  </div>
+    <div class="card">
+      <h2><span class="no">3</span>选择内容</h2>
+      <div class="stage-tabs" id="stageTabs"></div>
+      <label>第几天</label>
+      <select id="daySel"></select>
+      <label>角度</label>
+      <select id="angleSel"></select>
+      <button class="btn" id="genBtn" onclick="generate()">✨ 生成这篇文案</button>
+    </div>
 
-  <div id="loading" class="loading hidden">生成中，推理模型约需 30-60 秒…</div>
-</div>
+    <div class="card hidden" id="resultCard">
+      <h2><span class="no">4</span>生成结果</h2>
+      <div class="result" id="result"></div>
+      <button class="btn ghost" onclick="copyResult()">📋 复制文案</button>
+    </div>
+
+    <div id="loading" class="loading hidden">生成中<span class="dot">…</span>推理模型约需 30-60 秒</div>
+  </div>
 
 <script>
-// ===== 后端地址：部署后改成你的阿里云 FC 地址 =====
+// ===== 后端地址：部署后改成你的域名下的后端地址 =====
 var API_BASE = "https://fashou-generate-lsuaxrymcx.cn-hangzhou.fcapp.run/";
 
-var SKELETON = null;          // 后端骨架数据
-var currentStage = null;      // 当前选中的阶段名
+var SKELETON = null;
+var currentStage = null;
 
-// 页面加载：拉骨架 + 填渠道
 document.addEventListener("DOMContentLoaded", function () {
   var ch = document.getElementById("channels");
   ["朋友圈","小红书","抖音","公众号","视频号","社群","私聊","今日头条","X（推特）","Threads","YouTube","Instagram"].forEach(function (c, i) {
     var s = document.createElement("span");
-    s.className = "chip" + (i < 3 ? " on" : "");  // 默认前 3 个
+    s.className = "chip" + (i < 3 ? " on" : "");
     s.textContent = c;
     s.onclick = function () { s.classList.toggle("on"); };
     ch.appendChild(s);
@@ -106,7 +221,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 function apiBase() {
   if (API_BASE.indexOf("你的阿里云") >= 0) {
-    showError("请先在代码里把 API_BASE 改成你的阿里云函数地址");
+    showError("请先配置后端地址");
     throw new Error("API_BASE 未配置");
   }
   return API_BASE;
@@ -154,8 +269,8 @@ function selectStage(name) {
     o.textContent = "第 " + d.第几天 + " 天 · " + d.主题;
     day.appendChild(o);
   });
-  renderAngles();
   day.onchange = renderAngles;
+  renderAngles();
 }
 
 function renderAngles() {
@@ -203,7 +318,7 @@ function generate() {
     阶段名: currentStage,
     第几天: parseInt(document.getElementById("daySel").value),
     角度名: document.getElementById("angleSel").value,
-    渠道名: channels[0]  // MVP 先取第一个渠道
+    渠道名: channels[0]
   };
   var btn = document.getElementById("genBtn");
   btn.disabled = true;
@@ -221,6 +336,7 @@ function generate() {
     btn.disabled = false;
     if (data.error) { showError(data.error); return; }
     document.getElementById("result").textContent = data.文案;
+    document.getElementById("result").className = "result";
     document.getElementById("resultCard").classList.remove("hidden");
     document.getElementById("resultCard").scrollIntoView({ behavior: "smooth" });
   })
